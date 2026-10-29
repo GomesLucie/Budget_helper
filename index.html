@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Mon budget mensuel</title>
+<style>
+:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);
+--bg:#f6f7f9;--card:#fff;--tx:#1d2430;--mut:#667085;--bd:#dfe3ea;--a:#2c7fb8;--c:#41b6a0;--ob:#2c7fb8;--pl:#e8943a;--ep:#4aa564}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){color-scheme:dark;--bg:#12161c;--card:#1b212b;--tx:#e8ecf2;--mut:#98a2b3;--bd:#2d3644;--a:#5aa9dc;--c:#55c7b1;--ob:#5aa9dc;--pl:#f0a65a;--ep:#63bb7c}}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*,*::before,*::after{box-sizing:inherit}
+body{margin:0;background:var(--bg);color:var(--tx);font:16px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+main{max-width:640px;margin:0 auto;padding:16px}
+h1{font-size:1.4rem;margin:.2em 0}h2{font-size:1.05rem;margin:1.4em 0 .5em}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:12px;margin-bottom:10px}
+.mut{color:var(--mut);font-size:.85rem}
+label{display:block;font-size:.8rem;color:var(--mut);margin-bottom:2px}
+input,select,button{font:inherit;color:inherit;background:var(--bg);border:1px solid var(--bd);border-radius:8px;padding:9px;width:100%;min-height:44px}
+button{cursor:pointer;background:var(--a);color:#fff;border:0;font-weight:600}
+button.sec{background:var(--card);color:var(--tx);border:1px solid var(--bd)}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:8px}.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-top:8px}
+.g3 select{font-size:.8rem;padding:6px}
+.name{font-weight:600;margin-bottom:8px}
+.del{width:auto;min-height:32px;padding:2px 10px;background:transparent;color:var(--mut);border:1px solid var(--bd);float:right}
+.kpi{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;text-align:center}
+.kpi b{display:block;font-size:1.15rem}
+.row{margin:8px 0}.row .t{display:flex;justify-content:space-between;font-size:.9rem}
+.bar{height:9px;border-radius:5px;margin-top:3px}
+.donutwrap{display:flex;gap:16px;align-items:center;flex-wrap:wrap}
+.donut{width:130px;height:130px;border-radius:50%;flex:none;-webkit-mask:radial-gradient(circle 38px,transparent 97%,#000 100%);mask:radial-gradient(circle 38px,transparent 97%,#000 100%)}
+.leg div{font-size:.9rem;margin:3px 0}.dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px}
+.key span{margin-right:12px;font-size:.8rem}
+#toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:#222;color:#fff;padding:10px 16px;border-radius:20px;opacity:0;transition:opacity .3s;pointer-events:none}
+</style>
+</head>
+<body>
+<main>
+<h1>Mon budget mensuel</h1>
+<p class="mut">Remplis ton revenu net et tes dépenses mensuelles : tu verras la répartition de ton budget et pourras la comparer à la règle 50/30/20. Tout reste sur ton téléphone : rien n’est envoyé.</p>
+
+<div class="card"><label for="rev">Revenu mensuel net (€)</label><input id="rev" type="number" inputmode="decimal" placeholder="0"></div>
+
+<h2>1. Mes dépenses</h2>
+<div id="rows"></div>
+<button class="sec" id="add">+ Ajouter une ligne</button>
+
+<h2>2. Mes résultats</h2>
+<div class="card kpi"><div><span class="mut">Revenu</span><b id="k0">0 €</b></div><div><span class="mut">Dépenses</span><b id="k1">0 €</b></div><div><span class="mut">Reste</span><b id="k3">0 €</b></div></div>
+<div class="card"><b>Obligation / plaisir / épargne</b>
+<div class="donutwrap" style="margin-top:8px"><div class="donut" id="donut"></div><div class="leg" id="leg"></div></div></div>
+<div class="card"><b>Par niveau</b><div id="c1"></div></div>
+<div class="card"><b>Par type de paiement</b><div id="c2"></div></div>
+<div class="card"><b>Par catégorie</b><div id="c3"></div></div>
+
+<h2>3. Comparaison avec la règle 50/30/20</h2>
+<p class="mut">Repère classique : 50 % du revenu net pour les obligations, 30 % pour les plaisirs, 20 % pour l’épargne. Ce n’est qu’un point de départ, à adapter à ta situation.</p>
+<div class="card" id="rule"></div>
+
+<div class="g2"><button id="copy">Copier mon budget (CSV)</button><button class="sec" id="reset">Tout effacer</button></div>
+<p class="mut">Astuce : copie le CSV pour le coller dans un mail ou un tableur, ou fais une capture d’écran des figures avant la discussion.</p>
+</main>
+<div id="toast"></div>
+<script>
+const N1=["Obligation","Plaisir","Épargne"],PAY=["Crédit","Abonnement","Ponctuel / variable"];
+const N2=["Loyer","Transport","Impôts","Énergie","Courses alimentaires","Sorties","Sports","Internet","Assurances","Santé","Investissement","Épargne","Cadeaux","Vacances","Restaurants","Passions","Autres"];
+const COL={Obligation:"var(--ob)",Plaisir:"var(--pl)","Épargne":"var(--ep)"};
+const D=[["Loyer","O","A"],["Transport","O","P"],["Impôts","O","A"],["Énergie","O","A"],["Courses alimentaires","O","P"],["Sorties","P","P"],["Sports","P","A"],["Internet","O","A"],["Assurances","O","A"],["Santé","O","P"],["Investissement","E","A"],["Épargne","E","A"],["Cadeaux","P","P"],["Vacances","P","P"],["Restaurants","P","P"],["Passions","P","P"],["Autres","P","P"]];
+const m1={O:"Obligation",P:"Plaisir",E:"Épargne"},mp={A:"Abonnement",P:"Ponctuel / variable"};
+const def=()=>D.map(([n,a,p])=>({n,n1:m1[a],n2:n,p:mp[p],a:0,c:0}));
+let S={rev:0,rows:def()};
+try{const s=localStorage.getItem("budget-v1");if(s)S=JSON.parse(s)}catch(e){}
+const $=id=>document.getElementById(id);
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const opt=(L,v)=>L.map(x=>`<option${x===v?" selected":""}>${esc(x)}</option>`).join("");
+const eur=x=>Math.round(x).toLocaleString("fr-FR")+" €";
+function save(){try{localStorage.setItem("budget-v1",JSON.stringify(S))}catch(e){}}
+function drawRows(){
+  $("rows").innerHTML=S.rows.map((r,i)=>`<div class="card"><button class="del" data-d="${i}" aria-label="Supprimer">✕</button>
+  <div class="name"><input data-i="${i}" data-k="n" value="${esc(r.n)}" aria-label="Nom"></div>
+  <label>Montant (€/mois)</label><input type="number" inputmode="decimal" data-i="${i}" data-k="a" value="${r.a||""}" placeholder="0">
+  <div class="g3"><select data-i="${i}" data-k="n1">${opt(N1,r.n1)}</select><select data-i="${i}" data-k="n2">${opt(N2,r.n2)}</select><select data-i="${i}" data-k="p">${opt(PAY,r.p)}</select></div></div>`).join("");
+}
+function group(k){const o={};S.rows.forEach(r=>{o[r[k]]=o[r[k]]||{a:0};o[r[k]].a+=+r.a||0});return Object.entries(o).filter(([,v])=>v.a)}
+function bars(id,k){const g=group(k).sort((x,y)=>y[1].a-x[1].a),mx=Math.max(1,...g.map(([,v])=>v.a));
+  $(id).innerHTML=g.map(([n,v])=>`<div class="row"><div class="t"><span>${esc(n)}</span><span class="mut">${eur(v.a)}</span></div>
+  <div class="bar" style="width:${v.a/mx*100}%;background:var(--a)"></div></div>`).join("")||'<p class="mut">Rien à afficher pour l’instant.</p>'}
+function draw(){
+  const ta=S.rows.reduce((s,r)=>s+(+r.a||0),0),rev=+S.rev||0;
+  $("k0").textContent=eur(rev);$("k1").textContent=eur(ta);$("k3").textContent=eur(rev-ta);
+  const g=group("n1"),sum=g.reduce((s,[,v])=>s+v.a,0);let acc=0;
+  const grad=g.filter(([,v])=>v.a).map(([n,v])=>{const s=acc;acc+=v.a/sum*100;return `${COL[n]||"var(--mut)"} ${s}% ${acc}%`}).join(",");
+  $("donut").style.background=sum?`conic-gradient(${grad})`:"var(--bd)";
+  $("leg").innerHTML=g.map(([n,v])=>`<div><span class="dot" style="background:${COL[n]||"var(--mut)"}"></span>${esc(n)} : ${eur(v.a)} (${sum?Math.round(v.a/sum*100):0} %${rev?" · "+Math.round(v.a/rev*100)+" % du revenu":""})</div>`).join("");
+  bars("c1","n1");bars("c2","p");bars("c3","n2");rule(g,rev);
+}
+function rule(g,rev){
+  const el=$("rule");
+  if(!rev){el.innerHTML='<p class="mut">Renseigne ton revenu mensuel net en haut de la page pour voir la comparaison.</p>';return}
+  const act=Object.fromEntries(g.map(([n,v])=>[n,v.a]));
+  const R=[["Obligation",.5],["Plaisir",.3],["Épargne",.2]];
+  const mx=Math.max(1,...R.map(([n,p])=>Math.max(act[n]||0,rev*p)));
+  el.innerHTML=R.map(([n,p])=>{const a=act[n]||0,r=rev*p,d=Math.round(a-r);
+    return `<div class="row"><div class="t"><b>${n}</b><span class="mut">${Math.round(a/rev*100)} % · conseillé ${Math.round(p*100)} %</span></div>
+    <div class="bar" style="width:${a/mx*100}%;background:${COL[n]}"></div>
+    <div class="bar" style="width:${r/mx*100}%;background:var(--bd)"></div>
+    <div class="mut">Toi : ${eur(a)} · Conseillé : ${eur(r)} · ${d===0?"pile dans le repère":eur(Math.abs(d))+(d>0?" au-dessus":" en dessous")}</div></div>`}).join("")+'<p class="mut">Barre colorée = ton budget, barre grise = repère 50/30/20.</p>';
+}
+function toast(t){const e=$("toast");e.textContent=t;e.style.opacity=1;setTimeout(()=>e.style.opacity=0,1800)}
+$("rows").addEventListener("input",e=>{const t=e.target,i=t.dataset.i;if(i===undefined)return;S.rows[i][t.dataset.k]=t.type==="number"?(parseFloat(t.value)||0):t.value;save();draw()});
+$("rows").addEventListener("click",e=>{const d=e.target.dataset.d;if(d===undefined)return;S.rows.splice(d,1);save();drawRows();draw()});
+$("add").onclick=()=>{S.rows.push({n:"Nouvelle dépense",n1:"Plaisir",n2:"Autres",p:"Ponctuel / variable",a:0,c:0});save();drawRows();draw();window.scrollTo({top:document.body.scrollHeight})};
+$("rev").oninput=e=>{S.rev=parseFloat(e.target.value)||0;save();draw()};
+$("reset").onclick=()=>{if(confirm("Tout effacer ?")){S={rev:0,rows:def()};save();$("rev").value="";drawRows();draw()}};
+$("copy").onclick=async()=>{
+  const q=v=>'"'+String(v).replace(/"/g,'""')+'"';
+  const csv=["Libellé;Niveau1;Niveau2;Paiement;Montant",...S.rows.map(r=>[q(r.n),r.n1,r.n2,r.p,r.a].join(";")),"Revenu;;;;"+(S.rev||0)].join("\n");
+  try{await navigator.clipboard.writeText(csv);toast("Copié !")}catch(e){const t=document.createElement("textarea");t.value=csv;document.body.appendChild(t);t.select();try{document.execCommand("copy");toast("Copié !")}catch(_){toast("Copie impossible")}t.remove()}};
+$("rev").value=S.rev||"";drawRows();draw();
+</script>
+</body>
+</html>
