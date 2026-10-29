@@ -22,6 +22,7 @@ button.sec{background:var(--card);color:var(--tx);border:1px solid var(--bd)}
 .g2{display:grid;grid-template-columns:1fr 1fr;gap:8px}.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-top:8px}
 .g3 select{font-size:.8rem;padding:6px}
 .name{font-weight:600;margin-bottom:8px}
+.steps{padding-left:1.3em;margin:0}.steps li{margin:.4em 0}
 .grp{font-size:1rem;margin:20px 0 8px;padding-bottom:4px;border-bottom:2px solid currentColor}
 .tag{font-size:.7rem;color:#fff;padding:2px 8px;border-radius:10px;margin-left:6px;font-weight:600;vertical-align:middle}
 @media (prefers-color-scheme:dark){.tag{color:#0b0f14}}
@@ -40,7 +41,8 @@ button.sec{background:var(--card);color:var(--tx);border:1px solid var(--bd)}
 <body>
 <main>
 <h1>Mon budget mensuel</h1>
-<p class="mut">Remplis ton revenu net et tes dépenses mensuelles : tu verras la répartition de ton budget et pourras la comparer à la règle 50/30/20. Tout reste sur ton téléphone : rien n’est envoyé.</p>
+<div class="card"><ol class="steps"><li>Prends ton <b>dernier bulletin de salaire</b> et renseigne ton <b>revenu net</b>.</li><li>Prends ton <b>dernier relevé bancaire</b> et saisis tes <b>dépenses mensuelles</b>.</li><li>Comprends <b>où va ton argent</b> et découvre la <b>répartition de ton budget</b>, comparée à la règle 50/30/20.</li></ol>
+<p class="mut" style="margin:8px 0 0">Aucune donnée n’est envoyée ni stockée sur un serveur : tout reste sur ton téléphone.</p></div>
 
 <div class="card"><label for="rev">Revenu mensuel net (€)</label><input id="rev" type="number" inputmode="decimal" placeholder="0"></div>
 
