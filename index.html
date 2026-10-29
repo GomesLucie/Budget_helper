@@ -22,6 +22,9 @@ button.sec{background:var(--card);color:var(--tx);border:1px solid var(--bd)}
 .g2{display:grid;grid-template-columns:1fr 1fr;gap:8px}.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-top:8px}
 .g3 select{font-size:.8rem;padding:6px}
 .name{font-weight:600;margin-bottom:8px}
+.grp{font-size:1rem;margin:20px 0 8px;padding-bottom:4px;border-bottom:2px solid currentColor}
+.tag{font-size:.7rem;color:#fff;padding:2px 8px;border-radius:10px;margin-left:6px;font-weight:600;vertical-align:middle}
+@media (prefers-color-scheme:dark){.tag{color:#0b0f14}}
 .del{width:auto;min-height:32px;padding:2px 10px;background:transparent;color:var(--mut);border:1px solid var(--bd);float:right}
 .kpi{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;text-align:center}
 .kpi b{display:block;font-size:1.15rem}
@@ -42,8 +45,9 @@ button.sec{background:var(--card);color:var(--tx);border:1px solid var(--bd)}
 <div class="card"><label for="rev">Revenu mensuel net (€)</label><input id="rev" type="number" inputmode="decimal" placeholder="0"></div>
 
 <h2>1. Mes dépenses</h2>
+<p class="mut">Indique le montant mensuel de chaque ligne et choisis son type de paiement.<br><span class="dot" style="background:var(--ob)"></span>Obligation &nbsp;<span class="dot" style="background:var(--pl)"></span>Plaisir &nbsp;<span class="dot" style="background:var(--ep)"></span>Épargne</p>
 <div id="rows"></div>
-<button class="sec" id="add">+ Ajouter une ligne</button>
+
 
 <h2>2. Mes résultats</h2>
 <div class="card kpi"><div><span class="mut">Revenu</span><b id="k0">0 €</b></div><div><span class="mut">Dépenses</span><b id="k1">0 €</b></div><div><span class="mut">Reste</span><b id="k3">0 €</b></div></div>
@@ -62,29 +66,29 @@ button.sec{background:var(--card);color:var(--tx);border:1px solid var(--bd)}
 </main>
 <div id="toast"></div>
 <script>
-const N1=["Obligation","Plaisir","Épargne"],PAY=["Crédit","Abonnement","Ponctuel / variable"];
-const N2=["Loyer","Transport","Impôts","Énergie","Courses alimentaires","Sorties","Sports","Internet","Assurances","Santé","Investissement","Épargne","Cadeaux","Vacances","Restaurants","Passions","Autres"];
+const N1=["Obligation","Plaisir","Épargne"],PAY=["Crédit","Virement automatique","Ponctuel / variable"];
+const N2=["Loyer / crédit immobilier / charges","Énergie","Assurances (auto, maison, etc.)","Santé (mutuelle)","Impôts / Taxes","Internet / téléphone","Transport","Courses alimentaires","Sorties et restaurants","Vacances","Loisirs / passions","Cadeaux","Animaux","Vêtements et soins","Abonnements numériques","Autre crédit (auto, étudiant, conso...)","Épargne de précaution","Investissement","Autres"];
 const COL={Obligation:"var(--ob)",Plaisir:"var(--pl)","Épargne":"var(--ep)"};
-const D=[["Loyer","O","A"],["Transport","O","P"],["Impôts","O","A"],["Énergie","O","A"],["Courses alimentaires","O","P"],["Sorties","P","P"],["Sports","P","A"],["Internet","O","A"],["Assurances","O","A"],["Santé","O","P"],["Investissement","E","A"],["Épargne","E","A"],["Cadeaux","P","P"],["Vacances","P","P"],["Restaurants","P","P"],["Passions","P","P"],["Autres","P","P"]];
-const m1={O:"Obligation",P:"Plaisir",E:"Épargne"},mp={A:"Abonnement",P:"Ponctuel / variable"};
+const D=[["Loyer / crédit immobilier / charges","O","A"],["Énergie","O","A"],["Assurances (auto, maison, etc.)","O","A"],["Santé (mutuelle)","O","A"],["Impôts / Taxes","O","A"],["Internet / téléphone","O","A"],["Transport","O","P"],["Courses alimentaires","O","P"],["Sorties et restaurants","P","P"],["Vacances","P","P"],["Loisirs / passions","P","P"],["Cadeaux","P","P"],["Animaux","O","P"],["Vêtements et soins","P","P"],["Abonnements numériques","P","A"],["Autre crédit (auto, étudiant, conso...)","O","C"],["Épargne de précaution","E","A"],["Investissement","E","A"],["Autres","P","P"]];
+const m1={O:"Obligation",P:"Plaisir",E:"Épargne"},mp={A:"Virement automatique",P:"Ponctuel / variable",C:"Crédit"};
 const def=()=>D.map(([n,a,p])=>({n,n1:m1[a],n2:n,p:mp[p],a:0,c:0}));
 let S={rev:0,rows:def()};
-try{const s=localStorage.getItem("budget-v1");if(s)S=JSON.parse(s)}catch(e){}
+try{const s=localStorage.getItem("budget-v3");if(s)S=JSON.parse(s)}catch(e){}
 const $=id=>document.getElementById(id);
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const opt=(L,v)=>L.map(x=>`<option${x===v?" selected":""}>${esc(x)}</option>`).join("");
 const eur=x=>Math.round(x).toLocaleString("fr-FR")+" €";
-function save(){try{localStorage.setItem("budget-v1",JSON.stringify(S))}catch(e){}}
+function save(){try{localStorage.setItem("budget-v3",JSON.stringify(S))}catch(e){}}
 function drawRows(){
-  $("rows").innerHTML=S.rows.map((r,i)=>`<div class="card"><button class="del" data-d="${i}" aria-label="Supprimer">✕</button>
-  <div class="name"><input data-i="${i}" data-k="n" value="${esc(r.n)}" aria-label="Nom"></div>
-  <label>Montant (€/mois)</label><input type="number" inputmode="decimal" data-i="${i}" data-k="a" value="${r.a||""}" placeholder="0">
-  <div class="g3"><select data-i="${i}" data-k="n1">${opt(N1,r.n1)}</select><select data-i="${i}" data-k="n2">${opt(N2,r.n2)}</select><select data-i="${i}" data-k="p">${opt(PAY,r.p)}</select></div></div>`).join("");
+  $("rows").innerHTML=S.rows.map((r,i)=>(i===0||S.rows[i-1].n1!==r.n1?`<h3 class="grp" style="color:${COL[r.n1]}">${{Obligation:"Obligations",Plaisir:"Plaisirs"}[r.n1]||r.n1}</h3>`:"")+`<div class="card cat" style="border-left:6px solid ${COL[r.n1]}">
+  <div class="name">${esc(r.n)} <span class="tag" style="background:${COL[r.n1]}">${esc(r.n1)}</span></div>
+  <div class="g2"><div><label>Montant (€/mois)</label><input type="number" inputmode="decimal" data-i="${i}" data-k="a" value="${r.a||""}" placeholder="0"></div><div><label>Type de paiement</label><select data-i="${i}" data-k="p">${opt(PAY,r.p)}</select></div></div>
+  </div>`).join("");
 }
 function group(k){const o={};S.rows.forEach(r=>{o[r[k]]=o[r[k]]||{a:0};o[r[k]].a+=+r.a||0});return Object.entries(o).filter(([,v])=>v.a)}
 function bars(id,k){const g=group(k).sort((x,y)=>y[1].a-x[1].a),mx=Math.max(1,...g.map(([,v])=>v.a));
   $(id).innerHTML=g.map(([n,v])=>`<div class="row"><div class="t"><span>${esc(n)}</span><span class="mut">${eur(v.a)}</span></div>
-  <div class="bar" style="width:${v.a/mx*100}%;background:var(--a)"></div></div>`).join("")||'<p class="mut">Rien à afficher pour l’instant.</p>'}
+  <div class="bar" style="width:${v.a/mx*100}%;background:${(k==="n1"?COL[n]:k==="n2"?COL[(S.rows.find(r=>r.n2===n)||{}).n1]:"")||"var(--a)"}"></div></div>`).join("")||'<p class="mut">Rien à afficher pour l’instant.</p>'}
 function draw(){
   const ta=S.rows.reduce((s,r)=>s+(+r.a||0),0),rev=+S.rev||0;
   $("k0").textContent=eur(rev);$("k1").textContent=eur(ta);$("k3").textContent=eur(rev-ta);
@@ -108,15 +112,15 @@ function rule(g,rev){
 }
 function toast(t){const e=$("toast");e.textContent=t;e.style.opacity=1;setTimeout(()=>e.style.opacity=0,1800)}
 $("rows").addEventListener("input",e=>{const t=e.target,i=t.dataset.i;if(i===undefined)return;S.rows[i][t.dataset.k]=t.type==="number"?(parseFloat(t.value)||0):t.value;save();draw()});
-$("rows").addEventListener("click",e=>{const d=e.target.dataset.d;if(d===undefined)return;S.rows.splice(d,1);save();drawRows();draw()});
-$("add").onclick=()=>{S.rows.push({n:"Nouvelle dépense",n1:"Plaisir",n2:"Autres",p:"Ponctuel / variable",a:0,c:0});save();drawRows();draw();window.scrollTo({top:document.body.scrollHeight})};
+
+
 $("rev").oninput=e=>{S.rev=parseFloat(e.target.value)||0;save();draw()};
 $("reset").onclick=()=>{if(confirm("Tout effacer ?")){S={rev:0,rows:def()};save();$("rev").value="";drawRows();draw()}};
 $("copy").onclick=async()=>{
   const q=v=>'"'+String(v).replace(/"/g,'""')+'"';
   const csv=["Libellé;Niveau1;Niveau2;Paiement;Montant",...S.rows.map(r=>[q(r.n),r.n1,r.n2,r.p,r.a].join(";")),"Revenu;;;;"+(S.rev||0)].join("\n");
   try{await navigator.clipboard.writeText(csv);toast("Copié !")}catch(e){const t=document.createElement("textarea");t.value=csv;document.body.appendChild(t);t.select();try{document.execCommand("copy");toast("Copié !")}catch(_){toast("Copie impossible")}t.remove()}};
-$("rev").value=S.rev||"";drawRows();draw();
+S.rows.forEach(r=>{if(r.p==="Abonnement")r.p="Virement automatique"});S.rows.sort((x,y)=>N1.indexOf(x.n1)-N1.indexOf(y.n1));$("rev").value=S.rev||"";drawRows();draw();
 </script>
 </body>
 </html>
